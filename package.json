@@ -262,7 +262,7 @@
 			},
 			{
 				"command": "rdbg.inspector.enableTraceLine",
-				"title": "\u200B    Trace Line"
+				"title": "​    Trace Line"
 			},
 			{
 				"command": "rdbg.inspector.disableTraceCall",
@@ -270,7 +270,7 @@
 			},
 			{
 				"command": "rdbg.inspector.enableTraceCall",
-				"title": "\u200B    Trace Call / Return"
+				"title": "​    Trace Call / Return"
 			},
 			{
 				"command": "rdbg.inspector.disableRecordAndReplay",
@@ -278,12 +278,12 @@
 			},
 			{
 				"command": "rdbg.inspector.enableRecordAndReplay",
-				"title": "\u200B    Record And Replay (Slow)",
+				"title": "​    Record And Replay (Slow)",
 				"enablement": "traceLineEnabled"
 			},
 			{
 				"command": "rdbg.inspector.enterFilter",
-				"title": "\u200B    Apply filter by RegExp"
+				"title": "​    Apply filter by RegExp"
 			},
 			{
 				"command": "rdbg.inspector.reenterFilter",
@@ -295,7 +295,7 @@
 			},
 			{
 				"command": "rdbg.inspector.enableTraceClanguageCall",
-				"title": "\u200B    Trace c_call / c_return"
+				"title": "​    Trace c_call / c_return"
 			},
 			{
 				"command": "rdbg.inspector.disableTraceClanguageCall",
@@ -401,6 +401,7 @@
 		"mocha-junit-reporter": "^2.2.1",
 		"prettier": "^3.5.3",
 		"typescript": "^5.8.2",
+		"typescript-eslint": "^8.26.0",
 		"vscode-extension-tester": "^8.13.0"
 	}
 }
