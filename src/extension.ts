@@ -39,6 +39,7 @@ let outputChannel: vscode.OutputChannel;
 const outputTerminals = new Map<string, vscode.Terminal>();
 let lastExecCommand: string | undefined;
 let lastProgram: string | undefined;
+let showDetailedLogs: boolean = false;
 
 const terminalName: string = "Ruby Debug Terminal";
 
@@ -65,7 +66,9 @@ function customPath(workingDirectory: string): string {
 }
 
 function pp(obj: any) {
-    outputChannel.appendLine(JSON.stringify(obj));
+    if (showDetailedLogs) {
+        outputChannel.appendLine(JSON.stringify(obj));
+    }
 }
 
 function exportBreakpoints() {
@@ -91,6 +94,7 @@ function exportBreakpoints() {
 
 export function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel("rdbg");
+    showDetailedLogs = vscode.workspace.getConfiguration("rdbg").get<boolean>("showDetailedLogs") || false;
 
     const adapterDescriptorFactory = new RdbgAdapterDescriptorFactory(context);
     const DAPTrackQueue = new EventEmitter<any>();
@@ -167,7 +171,9 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
         const self = this;
         const tracker: vscode.DebugAdapterTracker = {
             onWillStartSession(): void {
-                outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
+                if (showDetailedLogs) {
+                    outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
+                }
             },
             onWillStopSession(): void {
                 const outputTerminal = outputTerminals.get(session.id);
@@ -177,9 +183,26 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
                 }
             },
             onError(e) {
+                // Don't display errors for normal connection termination
+                if (e.message === "connection closed") {
+                    if (showDetailedLogs) {
+                        outputChannel.appendLine("[Session ended] Debug connection closed normally");
+                    }
+                    return;
+                }
+
+                // Always display other types of errors
                 outputChannel.appendLine(
                     "[Error on session]\n" + e.name + ": " + e.message + "\ne: " + JSON.stringify(e),
                 );
+            },
+            onExit(code, signal) {
+                if (code === 0) {
+                    // Don't display logs for normal termination
+                    return;
+                }
+                // Display error for abnormal termination
+                outputChannel.appendLine(`[Debug session exited with code ${code}]`);
             },
         };
         if (session.configuration.showProtocolLog) {
@@ -484,7 +507,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
             [host, port, sockPath] = this.parsePort(config.debugPort);
         } else {
             const list = await this.getSockList(config);
-            outputChannel.appendLine(JSON.stringify(list));
+            if (showDetailedLogs) {
+                outputChannel.appendLine(JSON.stringify(list));
+            }
 
             switch (list.length) {
                 case 0:
@@ -544,7 +569,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 }
             });
             p.stderr?.on("data", (err) => {
-                outputChannel.appendLine(err);
+                if (showDetailedLogs) {
+                    outputChannel.appendLine(err);
+                }
             });
             p.stdout?.on("data", (out) => {
                 path = out.trim();
@@ -568,7 +595,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 resolve(path);
             });
             p.stderr?.on("data", (err) => {
-                outputChannel.appendLine(err);
+                if (showDetailedLogs) {
+                    outputChannel.appendLine(err);
+                }
             });
             p.stdout?.on("data", (out) => {
                 path = out.trim();
@@ -598,7 +627,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 }
             });
             p.stderr?.on("data", (err) => {
-                outputChannel.appendLine(err);
+                if (showDetailedLogs) {
+                    outputChannel.appendLine(err);
+                }
             });
             p.stdout?.on("data", (out) => {
                 version = out.trim();
@@ -729,7 +760,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 vscode.window.showErrorMessage("already exists: " + sockPath);
                 return new DebugAdapterInlineImplementation(new StopDebugAdapter());
             }
-            outputChannel.appendLine("sock-path: <" + sockPath + ">");
+            if (showDetailedLogs) {
+                outputChannel.appendLine("sock-path: <" + sockPath + ">");
+            }
         }
 
         // setup terminal
@@ -998,8 +1031,21 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 reject(err);
             });
             debugProcess.on("exit", (code) => {
-                // Provide more detailed error information
-                let errorMessage = `Couldn't start debug session. The debuggee process exited with code ${code}\n`;
+                // Consider it a success if the debugger connected and disconnected properly
+                if (stderr.includes("DEBUGGER: Connected.") && stderr.includes("DEBUGGER: Disconnected.")) {
+                    // Normal debug session completion
+                    if (showDetailedLogs) {
+                        outputChannel.appendLine(`[Debug process completed with exit code ${code}]`);
+                        if (stderr) {
+                            outputChannel.appendLine(`Debug details:\n${stderr}`);
+                        }
+                    }
+                    reject(new Error("Debug process completed but the session has ended"));
+                    return;
+                }
+
+                // Treat as an error if debugger connection failed
+                let errorMessage = `Couldn't establish debug connection. The process exited with code ${code}\n`;
 
                 // Include stderr content if available
                 if (stderr) {
@@ -1007,9 +1053,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 }
 
                 // Explain common error codes and their possible causes
-                if (code === 0) {
-                    errorMessage += `\n\nPossible causes:\n- rdbg is not properly installed\n- 'debug' gem is not included in your Gemfile\n- The Ruby file being debugged has syntax errors`;
-                } else if (code === 1) {
+                if (code === 1) {
                     errorMessage += `\n\nPossible causes:\n- An error occurred during Ruby script execution\n- Debug configuration is incorrect`;
                 } else if (code === 127) {
                     errorMessage += `\n\nPossible causes:\n- rdbg command not found (try running 'gem install debug')`;
@@ -1069,8 +1113,21 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
                 reject(err);
             });
             debugProcess.on("exit", (code) => {
-                // Provide more detailed error information
-                let errorMessage = `Couldn't start debug session. The debuggee process exited with code ${code}\n`;
+                // Consider it a success if the debugger connected and disconnected properly
+                if (stderr.includes("DEBUGGER: Connected.") && stderr.includes("DEBUGGER: Disconnected.")) {
+                    // Normal debug session completion
+                    if (showDetailedLogs) {
+                        outputChannel.appendLine(`[Debug process completed with exit code ${code}]`);
+                        if (stderr) {
+                            outputChannel.appendLine(`Debug details:\n${stderr}`);
+                        }
+                    }
+                    reject(new Error("Debug process completed but the session has ended"));
+                    return;
+                }
+
+                // Treat as an error if debugger connection failed
+                let errorMessage = `Couldn't establish debug connection. The process exited with code ${code}\n`;
 
                 // Include stderr content if available
                 if (stderr) {
