@@ -22,13 +22,13 @@ module.exports = [
             "no-unused-expressions": "warn",
             "no-throw-literal": "warn",
             semi: "off",
-            "no-unused-vars": "off", // 未使用変数のチェックを無効化
-            "@typescript-eslint/no-unused-vars": "warn", // 警告に変更
+            "no-unused-vars": "off", // Disable checking for unused variables
+            "@typescript-eslint/no-unused-vars": "warn", // Changed to warning
             eqeqeq: "warn",
             "prefer-const": "warn",
-            "no-var": "warn", // varの使用を警告に変更
-            "@typescript-eslint/no-explicit-any": "warn", // anyの使用を警告に変更
-            "@typescript-eslint/no-this-alias": "warn", // thisの別名付けを警告に変更
+            "no-var": "warn", // Warn on var usage
+            "@typescript-eslint/no-explicit-any": "warn", // Warn on any usage
+            "@typescript-eslint/no-this-alias": "warn", // Warn on this aliasing
         },
     },
 ];
