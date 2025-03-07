@@ -3,3 +3,9 @@ node_modules
 .vscode-test/
 *.vsix
 test-resources/
+
+# NPM generated command files
+npm
+eslint
+tsc
+vscode-rdbg@*
