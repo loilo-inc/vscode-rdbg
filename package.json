@@ -87,6 +87,11 @@
                                 "type": "object",
                                 "description": "Additional environment variables to pass to the rdbg process",
                                 "default": {}
+                            },
+                            "showDetailedLogs": {
+                                "type": "boolean",
+                                "description": "Show detailed logs, such as socket paths and debug connection information",
+                                "default": false
                             }
                         }
                     },
@@ -162,6 +167,11 @@
                                 "type": "boolean",
                                 "description": "Create a new terminal and then execute commands there",
                                 "default": false
+                            },
+                            "showDetailedLogs": {
+                                "type": "boolean",
+                                "description": "Show detailed logs, such as socket paths and debug connection information",
+                                "default": false
                             }
                         }
                     }
@@ -234,6 +244,11 @@
                         "none"
                     ],
                     "default": "none"
+                },
+                "rdbg.showDetailedLogs": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show detailed logs, such as socket paths and debug connection information"
                 }
             }
         },
