@@ -9,3 +9,5 @@ npm
 eslint
 tsc
 vscode-rdbg@*
+
+.idea
